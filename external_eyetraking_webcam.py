@@ -33,7 +33,7 @@ from collections import Counter
 # check if the eye is roughly in the center of the cam during Fase1
 
 # CAMERA NOTE
-# i've tested some camera for this software, that's my opinion:
+# i've tested some different camera for this software, that's my opinion:
 # Microsoft LifeCam HD-3000 = good light, but slow during the acquisition, difficult to hack lens
 # LOGITECH HD C525 = very slow, wide lens make difficult to point a little element as eye, difficult to hack lens
 # Logitech PC Webcam C270 = very cheaper, but easy to hack lens (you can easly remove the lens and replace it), very fast data throughput
@@ -206,7 +206,7 @@ best_minrect_array = [0] * 500
 
 print "fase 2 started"
 
-while number<200:
+while number<100:
     start = time.time()
     (grabbed, image) = camera.read()
     # grab the raw NumPy array representing the image
@@ -217,7 +217,7 @@ while number<200:
         break
     #frame = image[r0:r2 , r1:r3]
     #frame = image[r0:r2 , r1:r3]
-    tollerance = 50 # find a different way to calcolate this
+    tollerance = 0 # find a different way to calcolate this
      
     moltiplicator_w = fase2_resolution[0] / fase1_resolution[0]
     moltiplicator_h = fase2_resolution[1] / fase1_resolution[1]
@@ -310,7 +310,7 @@ if number_of_good_min_rect > 1:
     #setting of all the variable
     #min_rect = best_min_rect 
     min_rect = int(min_rect/1.2) # this si the key of speed and stability
-    tollerance = 50 # find a different way to calcolate this
+    tollerance = 0 # find a different way to calcolate this
     moltiplicator_w = fase2_resolution[0] / fase1_resolution[0]
     moltiplicator_h = fase2_resolution[1] / fase1_resolution[1]
     
