@@ -27,27 +27,27 @@ this permit to render the graphical in the raspberry attached monitor.
 
 
 
-We need to fix an issue in the Virtual Environment
-update your ~/.profile  file to include the following lines in the end of the file:
+#####We need to fix an issue in the Virtual Environment
+#####update your ~/.profile  file to include the following lines in the end of the file:
 nano ~/.profile  
 
 export WORKON_HOME=$HOME/.virtualenvs  
 source /usr/local/bin/virtualenvwrapper.sh  
 
-Now reload the profile
+#####Now reload the profile
 source ~/.profile
 
-And activate Virtual Environment
+#####And activate Virtual Environment
 workon cv
 
 
-Now clone the repository (be sure you are in the user folder /home/pi)
+#####Now clone the repository (be sure you are in the user folder /home/pi)
 git clone https://github.com/davidecaminati/EyeTracker_Raspberry2
 
-move into directory
+#####move into directory
 cd EyeTracker_Raspberry2
 
-start the program
+#####start the program
 python external_eyetraking_webcam.py -o True -e 0
 
 
