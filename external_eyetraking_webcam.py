@@ -57,20 +57,26 @@ video_source = args["video"]
 usa_ottimizzazione_statica = (args["static_optimization"] == "True")
 eye_to_track = args["eye"] 
 
-minimal_quality = 0.7
+minimal_quality = 0.8
+
+#set as default video source as webcam
+video_src = 0 
+
 
 # find video source (TODO)
 if video_source == "raspicam":
     #use Raspicam as video grabber
-    pass
+    video_src = 0
 elif video_source == "camera": 
     # default setting
-    pass
-else:
+    video_src = 0
+elif video_source is not None : 
     # load the video file
-    pass
-
-
+    video_src = video_source
+else:
+    video_src = 0
+    
+print "video_src " + str(video_src) 
 # initialize the camera and grab a reference to the raw camera capture
 
 #camera = PiCamera()
@@ -83,8 +89,10 @@ et = Eyetracker_no_face("cascades/haarcascade_eye.xml")
 time.sleep(0.1)
 
 # capture frames from the webcam
-video_src = 0 # 0 = first webcam /dev/video0
 camera = cv2.VideoCapture(video_src)
+
+
+
 #    list of possible resolution of my Logitech C270 camera
 resolutions = [('640.0', '480.0'), ('160.0', '120.0'), ('176.0', '144.0'), ('320.0', '176.0'), ('320.0', '240.0'), ('352.0', '288.0'), ('424.0', '240.0'), ('432.0', '240.0'), ('544.0', '288.0'), ('640.0', '360.0'), ('752.0', '416.0'), 
     ('800.0', '448.0'), ('800.0', '600.0'), ('856.0', '480.0'), ('864.0', '480.0'), ('960.0', '544.0'), ('960.0', '720.0'), ('1024.0', '576.0'), ('1184.0', '656.0'), ('1280.0', '960.0')]
@@ -106,6 +114,7 @@ for numx in range(100,1300,10):  #to iterate between 10 to 1300 step 10
             valArray.append(val)
 print valArray
 '''
+
 # set the resolution for this fase
 w,h = resolutions[6] # '640.0', '480.0'
 fase1_resolution = set_res(camera,int(float(w)),int(float(h)))
@@ -121,7 +130,8 @@ r3 = 0
 print "fase 1 started"
 rectArray = []
 number_common_rect = 0
-while number_common_rect < 3: #at least 3 entry of the same rect
+b = Counter(rectArray)
+while number_common_rect <= 1: #at least 3 entry of the same rect
 
     start = time.time()
     
@@ -144,6 +154,7 @@ while number_common_rect < 3: #at least 3 entry of the same rect
     # resize the frame and convert it to grayscale
     #frame = imutils.resize(frame, width = 300)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.blur(gray, (3,3))
     
     # detect eyes in the image
     rects = et.track(gray)
@@ -183,11 +194,14 @@ while number_common_rect < 3: #at least 3 entry of the same rect
         break
         
 # use the must common rect finded in Fase1
-rect = b.most_common(1)[0][0]
-r0 = rect[0]
-r1 = rect[1]
-r2 = rect[2]
-r3 = rect[3]
+try:
+    rect = b.most_common(1)[0][0]
+    r0 = rect[0]
+    r1 = rect[1]
+    r2 = rect[2]
+    r3 = rect[3]
+except:
+    pass
 print "ok",r0,r1,r2,r3
 time.sleep(10)
 
@@ -203,7 +217,7 @@ min_rect = r2/2 # start with an "empiric" minimal rect (based on width)
 old_end = 1.0
 old_number = number
 optimized = 0
-best_minrect_array = [0] * 500
+best_minrect_array = [0] * 500 # create an array of 500 values 
 
 print "fase 2 started"
 
@@ -218,7 +232,7 @@ while number<100:
         break
     #frame = image[r0:r2 , r1:r3]
     #frame = image[r0:r2 , r1:r3]
-    tollerance = 0 # find a different way to calcolate this
+    tollerance = 50 # find a different way to calcolate this
      
     moltiplicator_w = fase2_resolution[0] / fase1_resolution[0]
     moltiplicator_h = fase2_resolution[1] / fase1_resolution[1]
@@ -239,6 +253,7 @@ while number<100:
     # resize the frame and convert it to grayscale
     #frame = imutils.resize(frame, width = 300)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.blur(gray, (3,3))
     
     # detect eyes in the image
     rects = et.track(gray,(min_rect,min_rect))
@@ -269,6 +284,7 @@ while number<100:
                 
         else:
             if optimized < 100:
+                optimized +=1
                 min_rect -=int(min_rect*5/100) 
         # after last update take some margin and fix the value of min_rect for future recognition    
         if optimized == 99:
@@ -310,8 +326,8 @@ if number_of_good_min_rect > 1:
     
     #setting of all the variable
     #min_rect = best_min_rect 
-    min_rect = int(min_rect/1.2) # this si the key of speed and stability
-    tollerance = 0 # find a different way to calcolate this
+    min_rect = int(min_rect/1.3) # this si the key of speed and stability (1.3 seems good enought)
+    tollerance = 50 # find a different way to calcolate this
     moltiplicator_w = fase2_resolution[0] / fase1_resolution[0]
     moltiplicator_h = fase2_resolution[1] / fase1_resolution[1]
     
@@ -341,7 +357,7 @@ if number_of_good_min_rect > 1:
         # resize the frame and convert it to grayscale
         #frame = imutils.resize(frame, width = 300)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
+        gray = cv2.blur(gray, (3,3))
         # detect eyes in the image
         rects = et.track(gray,(min_rect,min_rect))
         
