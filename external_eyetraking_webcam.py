@@ -23,14 +23,15 @@ from collections import Counter
 # TODO 
 # add parameter for video file, camera or raspicam
 # read the camera resolution capability and save into an array (actually on test)
-# moltiplicator must be connected with effective resolution change from FirstFase and SecondFase proportions (actualy on test)
+# moltiplicator must be connected with effective resolution change from Fase1 and Fase2 proportions (actualy on test)
 # Fase1 must identify correctly the eye position (no false positive) and select the eye to track
-# add recognition procerute (hug, nn, whatelse)
+# add recognition procedute (hug, nn, whatelse)
 # test improvement of multi core capability (probably we don't need this) (seems not possible for python to run in multicore cause GIL, butprobably haar can run in Multicore if correctly recompiled)
 # think about a routine to rotate image accordly with the face (or eye) rotation
 # provide change of resolution of fase 1 and fase 2 as parameter (think on this)
 # catch exception (eye not found)
 # check if the eye is roughly in the center of the cam during Fase1
+# rotate image if necessary (test how much CPU consume and if it improve recognition)
 
 # CAMERA NOTE
 # i've tested some different camera for this software, that's my opinion:
@@ -120,7 +121,7 @@ r3 = 0
 print "fase 1 started"
 rectArray = []
 number_common_rect = 0
-while number_common_rect < 3: #at least 5 entry of the same rect
+while number_common_rect < 3: #at least 3 entry of the same rect
 
     start = time.time()
     
@@ -188,7 +189,7 @@ r1 = rect[1]
 r2 = rect[2]
 r3 = rect[3]
 print "ok",r0,r1,r2,r3
-
+time.sleep(10)
 
 # debug
 #time.sleep(10)
