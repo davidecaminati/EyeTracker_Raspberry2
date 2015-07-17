@@ -15,13 +15,17 @@
 # import the necessary packages
 from pyimagesearch.eyetracker_no_face import Eyetracker_no_face
 from pyimagesearch import imutils
+
+from skimage.filter import threshold_adaptive
+import numpy as np
+
 import argparse
 import time
 import cv2
 from collections import Counter
 
 # TODO 
-# add parameter for video file, camera or raspicam
+# add parameter for video file, camera or raspicam (actually on test VIDEO & CAMERA)
 # read the camera resolution capability and save into an array (actually on test)
 # moltiplicator must be connected with effective resolution change from Fase1 and Fase2 proportions (actualy on test)
 # Fase1 must identify correctly the eye position (no false positive) and select the eye to track
@@ -31,7 +35,7 @@ from collections import Counter
 # provide change of resolution of fase 1 and fase 2 as parameter (think on this)
 # catch exception (eye not found)
 # check if the eye is roughly in the center of the cam during Fase1
-# rotate image if necessary (test how much CPU consume and if it improve recognition)
+# rotate image if necessary (test how much CPU consumer is and if it improve recognition)
 
 # CAMERA NOTE
 # i've tested some different camera for this software, that's my opinion:
@@ -203,7 +207,7 @@ try:
 except:
     pass
 print "ok",r0,r1,r2,r3
-time.sleep(10)
+#time.sleep(10)
 
 # debug
 #time.sleep(10)
@@ -320,6 +324,7 @@ print best_min_rect
 # release resource 
 best_minrect_array = []
 
+
 if number_of_good_min_rect > 1:
     #now i have a good reason to use best_min_rect as my min_rect
     print "fase 3 started"
@@ -365,7 +370,51 @@ if number_of_good_min_rect > 1:
         for rect in rects:
             cv2.rectangle(frame, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
             eye_frames +=1
-            print "eye located"
+            #roi_eye = image[rr1:rr3 , rr0:rr2]
+            #print rr0,rr1,rr2,rr3
+            miox = (rect[1]+rect[3])/2
+            roi_eye = frame[miox-20:miox+20,rect[0]:rect[2]]
+            #cv2.imshow("roi_eye", roi_eye)
+            
+            
+            image2 = roi_eye.copy()
+            
+            # apply a Gaussian blur to the image then find the brightest
+            # region
+            roi_eye = cv2.cvtColor(roi_eye, cv2.COLOR_BGR2GRAY)
+            roi_eye = cv2.equalizeHist(roi_eye)
+            roi_eye = cv2.GaussianBlur(roi_eye,(5, 5), 0)
+            (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(roi_eye)
+            #cv2.circle(image2, maxLoc, 5, (255, 0, 0), 2)
+            x,y = minLoc
+            #print x,y
+            colore = (0,0,0)
+            (h, w) = roi_eye.shape[:2]
+            if x <= (w/5)*2: # Left
+                colore = (0,0,255)
+            elif x <= (w/5)*3: # Center
+                colore = (255,255,255)
+            else: # Right
+                colore = (255,0,0)
+                
+            cv2.circle(image2, minLoc, 5, colore, 2)
+            cv2.imshow("image2", image2)
+            
+            # display the results of our newly improved method
+            #cv2.imshow("Robust", roi_eye)
+            
+            #r_eye = cv2.Canny(roi_eye,50,100)
+                
+            #test
+            #lap = cv2.Laplacian(frame, cv2.CV_64F)
+            #lap = np.uint8(np.absolute(lap))
+            #cv2.imshow("Laplacian", lap)
+            
+            
+            
+            
+            #time.sleep(0.3)
+            #print "eye located"
 
         # show the tracked eyes
         cv2.imshow("Eye Tracking", frame)
