@@ -96,5 +96,5 @@ chmod +x my_collage.py
 sudo apt-get install arduino
 pip install pyfirmata
 
-
-
+### For audio management
+sudo apt-get install python-pygame
