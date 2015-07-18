@@ -357,18 +357,29 @@ print best_min_rect
 
 # release resource 
 best_minrect_array = []
-
-gestureArray = ["N"] * 30
+time_for_gesture = 300 # number of frames to check for the gesture
+gestureArray = ["C"] * time_for_gesture
 
 def GestureDetect(gnd):
-    #gesture GREEN  C L C R C 
-    green = ["C","L","C","R","C"]
+    
+    #green = ["C","L","C","R","C"]
+    green = ["C","R","C","L","C","L","C","R","C","L"]
+    
     red = ["C","R","C","L","C"]
+    left = ["C","L","C","L","C","L","C"]
+    right = ["C","R","C","R","C","R","C"]
+    
+    #occhi = ["C","R","C","L","C","L","C","R","C","L"]
+    
     
     if gnd == green:
         return 1
     elif gnd == red:
         return 2
+    elif gnd == left:
+        return 3
+    elif gnd == right:
+        return 4
     else:
         return 0
     
@@ -388,18 +399,12 @@ def GestureEngine(position):
         old_char = x
     return gestureNoDuplicate
     
-GestureEngine("C")
-GestureEngine("C")
-GestureEngine("R")
-GestureEngine("C")
-GestureEngine("L")
-GestureEngine("C")
-GestureEngine("L")
 
-print GestureDetect(GestureEngine("C"))
-print "gestureNoDuplicate" 
 
-time.sleep(10)
+
+
+
+
 
 
 if number_of_good_min_rect > 1:
@@ -469,13 +474,22 @@ if number_of_good_min_rect > 1:
             #print x,y
             colore = (0,0,0)
             (h, w) = roi_eye.shape[:2]
+            actual_gesture = 0
             if x <= (w/5)*2: # Left
                 colore = (0,0,255)
+                print "L"
+                actual_gesture = GestureDetect(GestureEngine("L"))
             elif x <= (w/5)*3: # Center
                 colore = (255,255,255)
+                print "C"
+                actual_gesture =  GestureDetect(GestureEngine("C"))
             else: # Right
                 colore = (255,0,0)
-                
+                print "R"
+                actual_gesture =  GestureDetect(GestureEngine("R"))
+            print actual_gesture
+            if actual_gesture == 1:
+                SendToArduino("--1")
             cv2.circle(image2, minLoc, 5, colore, 2)
             cv2.imshow("image2", image2)
             
@@ -489,7 +503,7 @@ if number_of_good_min_rect > 1:
             #lap = np.uint8(np.absolute(lap))
             #cv2.imshow("Laplacian", lap)
             
-            time.sleep(0.3)
+            time.sleep(0.1)
             #print "eye located"
 
         # show the tracked eyes
@@ -497,7 +511,7 @@ if number_of_good_min_rect > 1:
         #rawCapture.truncate(0)
         end = time.time()
         elapsed_time = end - start
-        print elapsed_time
+        #print elapsed_time
         #SendToArduino(elapsed_time)
         
         # todo
