@@ -24,6 +24,9 @@ import time
 import cv2
 from collections import Counter
 
+import serial
+import time
+
 # TODO 
 # add parameter for video file, camera or raspicam (actually on test VIDEO & CAMERA)
 # read the camera resolution capability and save into an array (actually on test)
@@ -35,6 +38,7 @@ from collections import Counter
 # provide change of resolution of fase 1 and fase 2 as parameter (think on this)
 # catch exception (eye not found)
 # check if the eye is roughly in the center of the cam during Fase1
+# auto find serial port for Arduino
 # rotate image if necessary (test how much CPU consumer is and if it improve recognition)
 
 # CAMERA NOTE
@@ -60,6 +64,21 @@ args = vars(ap.parse_args())
 video_source = args["video"]
 usa_ottimizzazione_statica = (args["static_optimization"] == "True")
 eye_to_track = args["eye"] 
+
+Arduino_is_present = True
+# Serial comunication
+serPort = "/dev/ttyACM2"
+baudRate = 9600
+try:
+    ser = serial.Serial(serPort, baudRate)
+except:
+    Arduino_is_present = False
+
+time.sleep(2)
+
+print "Serial port " + serPort + " opened  Baudrate " + str(baudRate)
+
+
 
 minimal_quality = 0.8
 
@@ -119,6 +138,11 @@ for numx in range(100,1300,10):  #to iterate between 10 to 1300 step 10
 print valArray
 '''
 
+def SendToArduino(tts):
+    if Arduino_is_present:
+        ser.write(str(tts))
+        ser.write('\n') 
+    
 # set the resolution for this fase
 w,h = resolutions[6] # '640.0', '480.0'
 fase1_resolution = set_res(camera,int(float(w)),int(float(h)))
@@ -132,9 +156,13 @@ r3 = 0
 
 # debug
 print "fase 1 started"
+SendToArduino("fase 1 started")
 rectArray = []
 number_common_rect = 0
 b = Counter(rectArray)
+
+
+
 while number_common_rect <= 1: #at least 3 entry of the same rect
 
     start = time.time()
@@ -191,7 +219,9 @@ while number_common_rect <= 1: #at least 3 entry of the same rect
     
     # calcolate performance
     end = time.time()
-    print end - start
+    difference = end - start
+    print difference
+    ##SendToArduino(difference)
     
     # if the 'q' key is pressed, stop the loop
     if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -212,6 +242,7 @@ print "ok",r0,r1,r2,r3
 # debug
 #time.sleep(10)
 print "fase 1 ended"
+SendToArduino("fase 1 ended")
 print rectArray
 # set the resolution for this fase
 w,h = resolutions[6] # '424.0', '240.0'
@@ -224,6 +255,7 @@ optimized = 0
 best_minrect_array = [0] * 500 # create an array of 500 values 
 
 print "fase 2 started"
+SendToArduino("fase 2 started")
 
 while number<100:
     start = time.time()
@@ -233,6 +265,7 @@ while number<100:
     # check to see if we have reached the end of the video in case of video file
     if not grabbed:
         print "break 2"
+        SendToArduino("break 2")
         break
     #frame = image[r0:r2 , r1:r3]
     #frame = image[r0:r2 , r1:r3]
@@ -315,6 +348,7 @@ while number<100:
         break
 
 print "fase 2 ended"
+SendToArduino("fase 2 ended")
 print best_minrect_array
 number_of_good_min_rect = max(best_minrect_array)
 print number_of_good_min_rect
@@ -324,10 +358,54 @@ print best_min_rect
 # release resource 
 best_minrect_array = []
 
+gestureArray = ["N"] * 30
+
+def GestureDetect(gnd):
+    #gesture GREEN  C L C R C 
+    green = ["C","L","C","R","C"]
+    red = ["C","R","C","L","C"]
+    
+    if gnd == green:
+        return 1
+    elif gnd == red:
+        return 2
+    else:
+        return 0
+    
+
+def GestureEngine(position):
+    del gestureArray[0] # remove the oldest eye position
+    gestureArray.append(position) # add the new eye position
+    
+
+    
+    #remove duplicate contigue
+    old_char = "N"
+    gestureNoDuplicate = []
+    for x in gestureArray:
+        if x <> old_char:
+            gestureNoDuplicate.append(x)
+        old_char = x
+    return gestureNoDuplicate
+    
+GestureEngine("C")
+GestureEngine("C")
+GestureEngine("R")
+GestureEngine("C")
+GestureEngine("L")
+GestureEngine("C")
+GestureEngine("L")
+
+print GestureDetect(GestureEngine("C"))
+print "gestureNoDuplicate" 
+
+time.sleep(10)
+
 
 if number_of_good_min_rect > 1:
     #now i have a good reason to use best_min_rect as my min_rect
     print "fase 3 started"
+    SendToArduino("fase 3 started")
     
     #setting of all the variable
     #min_rect = best_min_rect 
@@ -355,7 +433,8 @@ if number_of_good_min_rect > 1:
         
         # check to see if we have reached the end of the video in case of video file
         if not grabbed:
-            print "break 3"
+            print "end of video stream"
+            SendToArduino("end of video stream")
             break
 
         frame = image[rr1:rr3 , rr0:rr2]
@@ -410,10 +489,7 @@ if number_of_good_min_rect > 1:
             #lap = np.uint8(np.absolute(lap))
             #cv2.imshow("Laplacian", lap)
             
-            
-            
-            
-            #time.sleep(0.3)
+            time.sleep(0.3)
             #print "eye located"
 
         # show the tracked eyes
@@ -422,6 +498,7 @@ if number_of_good_min_rect > 1:
         end = time.time()
         elapsed_time = end - start
         print elapsed_time
+        #SendToArduino(elapsed_time)
         
         # todo
         # find where you still looking (right, left, center)
@@ -435,16 +512,23 @@ if number_of_good_min_rect > 1:
                 eye_frames = 0.0
                 partial_frame_number = 0.0
                 if quality < minimal_quality:
-                    print "the accuracy is too low", quality
+                    print "accuracy is too low", quality
+                    SendToArduino("accuracy is too low")
                     break
             else:
                 print "the accuracy is too low no frame in last check!", quality
+                SendToArduino("accuracy low no frame")
                 break
                 
         # if the 'q' key is pressed, stop the loop
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 else:
-    print "not enought min_rect", number_of_good_min_rect
+    text_to_print = "not enought min_rect", number_of_good_min_rect
+    print text_to_print
+    SendToArduino(text_to_print)
+
+if Arduino_is_present:
+    ser.close
 camera.release()
 cv2.destroyAllWindows()
