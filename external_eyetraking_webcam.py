@@ -16,7 +16,7 @@
 from pyimagesearch.eyetracker_no_face import Eyetracker_no_face
 from pyimagesearch import imutils
 
-from skimage.filter import threshold_adaptive
+#from skimage.filter import threshold_adaptive
 import numpy as np
 
 import argparse
@@ -25,6 +25,8 @@ import cv2
 from collections import Counter
 
 import serial
+# pip install pyserial
+
 import time
 
 # TODO 
