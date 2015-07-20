@@ -29,6 +29,8 @@ import serial
 
 import time
 
+import socket
+
 # TODO 
 # add parameter for video file, camera or raspicam (actually on test VIDEO & CAMERA)
 # read the camera resolution capability and save into an array (actually on test)
@@ -80,12 +82,25 @@ time.sleep(2)
 
 print "Serial port " + serPort + " opened  Baudrate " + str(baudRate)
 
-
-
-minimal_quality = 0.8
-
-#set as default video source as webcam
+#set as default video source as webcam (suppose to use Raspberry)
 video_src = 0 
+
+# check if you sill using an UDOO Board
+def findCamera():
+    # check if we running on UDOO board ( in udoo the USB webcam is /dev/video3 )
+    name = socket.gethostname()
+    if name == 'udoobuntu':
+        return 3
+    else:
+        return 0
+
+
+    
+    
+
+minimal_quality = 0.8  # how many eye detection could be achieved every 50 frame (80%)
+
+
 
 
 # find video source (TODO)
@@ -94,12 +109,11 @@ if video_source == "raspicam":
     video_src = 0
 elif video_source == "camera": 
     # default setting
-    video_src = 0
+    video_src = findCamera()
 elif video_source is not None : 
     # load the video file
     video_src = video_source
-else:
-    video_src = 0
+
     
 print "video_src " + str(video_src) 
 # initialize the camera and grab a reference to the raw camera capture
