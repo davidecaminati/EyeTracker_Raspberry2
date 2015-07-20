@@ -55,6 +55,8 @@ import socket
 
 # --- the code start here ---
 
+Debug = False
+
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", required = False,
@@ -93,15 +95,9 @@ def findCamera():
         return 3
     else:
         return 0
-
-
-    
-    
-
-minimal_quality = 0.8  # how many eye detection could be achieved every 50 frame (80%)
-
-
-
+        
+# how many eye detection could be achieved every 50 frame (80%)
+minimal_quality = 0.01  
 
 # find video source (TODO)
 if video_source == "raspicam":
@@ -114,7 +110,6 @@ elif video_source is not None :
     # load the video file
     video_src = video_source
 
-    
 print "video_src " + str(video_src) 
 # initialize the camera and grab a reference to the raw camera capture
 
@@ -130,12 +125,9 @@ time.sleep(0.1)
 # capture frames from the webcam
 camera = cv2.VideoCapture(video_src)
 
-
-
 #    list of possible resolution of my Logitech C270 camera
 resolutions = [('640.0', '480.0'), ('160.0', '120.0'), ('176.0', '144.0'), ('320.0', '176.0'), ('320.0', '240.0'), ('352.0', '288.0'), ('424.0', '240.0'), ('432.0', '240.0'), ('544.0', '288.0'), ('640.0', '360.0'), ('752.0', '416.0'), 
     ('800.0', '448.0'), ('800.0', '600.0'), ('856.0', '480.0'), ('864.0', '480.0'), ('960.0', '544.0'), ('960.0', '720.0'), ('1024.0', '576.0'), ('1184.0', '656.0'), ('1280.0', '960.0')]
-
 
 def set_res(cap, x,y):
     cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, int(x))
@@ -163,7 +155,6 @@ def SendToArduino(tts):
 w,h = resolutions[6] # '640.0', '480.0'
 fase1_resolution = set_res(camera,int(float(w)),int(float(h)))
 
-
 number = 0
 r0 = 0
 r1 = 0
@@ -177,20 +168,18 @@ rectArray = []
 number_common_rect = 0
 b = Counter(rectArray)
 
-
-
-while number_common_rect <= 1: #at least 3 entry of the same rect
+while number_common_rect < 1: #at least 3 entry of the same rect
 
     start = time.time()
     
     #find the must common rect
-    if len(rectArray) > 15:
+    if len(rectArray) > 5:
         b = Counter(rectArray)
-        print "b.most_common(1)" + str(b.most_common(1))
-        print "number = " + str(b.most_common(1)[0][1])
+        if Debug:
+            print "b.most_common(1)" + str(b.most_common(1))
+            print "number = " + str(b.most_common(1)[0][1])
         number_common_rect = b.most_common(1)[0][1]
         
-
     (grabbed, frame) = camera.read()
     # grab the raw NumPy array representing the image
     
@@ -210,7 +199,8 @@ while number_common_rect <= 1: #at least 3 entry of the same rect
     # loop over the eyes bounding boxes and draw them
     for rect in rects:
         (h, w) = frame.shape[:2]
-        print rect[0],h,w
+        if Debug:
+            print rect[0],h,w
         cv2.rectangle(frame, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
         r0 = rect[0]
         r1 = rect[1]
@@ -219,24 +209,29 @@ while number_common_rect <= 1: #at least 3 entry of the same rect
         if eye_to_track == "0": # Left eye
             if rect[0] <= w/2:
                 number += 1
-                print "left"
+                if Debug:
+                    print "left"
                 rectArray.append(rect)
         else:                   # Right eye
             if rect[0] >= w/2:
                 number += 1
-                print "right"
+                if Debug:
+                    print "right"
                 rectArray.append(rect)
         
     
     # show the tracked eyes 
-    cv2.imshow("Tracking", frame)
+    if Debug:
+        cv2.imshow("Tracking", frame)
     # clear the frame in preparation for the next frame
     #rawCapture.truncate(0)
     
     # calcolate performance
     end = time.time()
     difference = end - start
-    print difference
+    
+    if Debug:
+        print difference
     ##SendToArduino(difference)
     
     # if the 'q' key is pressed, stop the loop
@@ -252,14 +247,16 @@ try:
     r3 = rect[3]
 except:
     pass
-print "ok",r0,r1,r2,r3
-#time.sleep(10)
 
-# debug
-#time.sleep(10)
-print "fase 1 ended"
+if Debug:
+    print "ok",r0,r1,r2,r3
+    #time.sleep(10)
+    
+    # debug
+    #time.sleep(10)
+    print "fase 1 ended"
+    print rectArray
 SendToArduino("fase 1 ended")
-print rectArray
 # set the resolution for this fase
 w,h = resolutions[6] # '424.0', '240.0'
 fase2_resolution = set_res(camera,int(float(w)),int(float(h)))
@@ -270,7 +267,8 @@ old_number = number
 optimized = 0
 best_minrect_array = [0] * 500 # create an array of 500 values 
 
-print "fase 2 started"
+if Debug:
+    print "fase 2 started"
 SendToArduino("fase 2 started")
 
 while number<100:
@@ -315,14 +313,15 @@ while number<100:
     for rect in rects:
         cv2.rectangle(frame, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
         number += 1
-        print number
+        if Debug:
+            print number
         # save the current min_rect value into the array 
         best_minrect_array[min_rect] = int (best_minrect_array[min_rect]) +1
     
     # show the tracked eyes and face, then clear the
     # frame in preparation for the next frame
-
-    cv2.imshow("Eye Tracking", frame)
+    if Debug:
+        cv2.imshow("Eye Tracking", frame)
     #rawCapture.truncate(0)
     end = time.time()
     elapsed_time = end - start
@@ -349,8 +348,9 @@ while number<100:
             min_rect +=3
         else:
             min_rect -=6
-          
-    print elapsed_time,min_rect,rect[2]
+            
+    if Debug:
+        print elapsed_time,min_rect,rect[2]
     old_end = end
     old_number = number
     if min_rect < 10:
@@ -363,14 +363,15 @@ while number<100:
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
-print "fase 2 ended"
-SendToArduino("fase 2 ended")
-print best_minrect_array
-number_of_good_min_rect = max(best_minrect_array)
-print number_of_good_min_rect
-best_min_rect = best_minrect_array.index(number_of_good_min_rect)
-print best_min_rect
 
+print "fase 2 ended"
+#print best_minrect_array
+number_of_good_min_rect = max(best_minrect_array)
+#print number_of_good_min_rect
+best_min_rect = best_minrect_array.index(number_of_good_min_rect)
+#print best_min_rect
+
+SendToArduino("fase 2 ended")
 # release resource 
 best_minrect_array = []
 time_for_gesture = 300 # number of frames to check for the gesture
@@ -404,8 +405,6 @@ def GestureEngine(position):
     del gestureArray[0] # remove the oldest eye position
     gestureArray.append(position) # add the new eye position
     
-
-    
     #remove duplicate contigue
     old_char = "N"
     gestureNoDuplicate = []
@@ -416,22 +415,19 @@ def GestureEngine(position):
     return gestureNoDuplicate
     
 
+    
 
-
-
-
-
-
-
+performance_test_eyes = []*5
+total_frame_number = 0.0
 if number_of_good_min_rect > 1:
     #now i have a good reason to use best_min_rect as my min_rect
-    print "fase 3 started"
+    if Debug:
+        print "fase 3 started"
     SendToArduino("fase 3 started")
     
     #setting of all the variable
-    #min_rect = best_min_rect 
-    min_rect = int(min_rect/1.3) # this si the key of speed and stability (1.3 seems good enought)
-    tollerance = 50 # find a different way to calcolate this
+    #min_rect = int(min_rect/1.3) # this si the key of speed and stability (1.3 seems good enought)
+    tollerance = 60 # find a different way to calcolate this
     moltiplicator_w = fase2_resolution[0] / fase1_resolution[0]
     moltiplicator_h = fase2_resolution[1] / fase1_resolution[1]
     
@@ -444,12 +440,14 @@ if number_of_good_min_rect > 1:
     eye_frames = 0.0
     partial_frame_number = 0.0
     quality = 0.0
+    consecutive_fail = [0]*300
+    fail = 0
     while True:
         
         start = time.time()
         
         partial_frame_number +=1 #increment every new frame 
-        
+        total_frame_number += 1.0
         (grabbed, image) = camera.read()
         
         # check to see if we have reached the end of the video in case of video file
@@ -465,19 +463,24 @@ if number_of_good_min_rect > 1:
         gray = cv2.blur(gray, (3,3))
         # detect eyes in the image
         rects = et.track(gray,(min_rect,min_rect))
-        
+        if len(rects) == 0:
+            fail +=1
         # loop over the face bounding boxes and draw them
         for rect in rects:
             cv2.rectangle(frame, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
             eye_frames +=1
+            if fail <> 0:
+                consecutive_fail[int(total_frame_number)] = fail
+            fail = 0
             #roi_eye = image[rr1:rr3 , rr0:rr2]
             #print rr0,rr1,rr2,rr3
             miox = (rect[1]+rect[3])/2
             roi_eye = frame[miox-20:miox+20,rect[0]:rect[2]]
-            #cv2.imshow("roi_eye", roi_eye)
+            if Debug:
+                cv2.imshow("roi_eye", roi_eye)
             
             
-            image2 = roi_eye.copy()
+            #image2 = roi_eye.copy()
             
             # apply a Gaussian blur to the image then find the brightest
             # region
@@ -491,23 +494,28 @@ if number_of_good_min_rect > 1:
             colore = (0,0,0)
             (h, w) = roi_eye.shape[:2]
             actual_gesture = 0
+            eye_information = []*3
             if x <= (w/5)*2: # Left
                 colore = (0,0,255)
-                print "L"
+                #print "L"
+                performance_test_eyes.append([elapsed_time,"L",h,w,total_frame_number])
                 actual_gesture = GestureDetect(GestureEngine("L"))
             elif x <= (w/5)*3: # Center
                 colore = (255,255,255)
-                print "C"
+                #print "C"
+                
+                performance_test_eyes.append([elapsed_time,"C",h,w,total_frame_number])
                 actual_gesture =  GestureDetect(GestureEngine("C"))
             else: # Right
                 colore = (255,0,0)
-                print "R"
+                #print "R"
+                performance_test_eyes.append([elapsed_time,"R",h,w,total_frame_number])
                 actual_gesture =  GestureDetect(GestureEngine("R"))
-            print actual_gesture
+            #print actual_gesture
             if actual_gesture == 1:
                 SendToArduino("--1")
-            cv2.circle(image2, minLoc, 5, colore, 2)
-            cv2.imshow("image2", image2)
+            #cv2.circle(image2, minLoc, 5, colore, 2)
+            #cv2.imshow("image2", image2)
             
             # display the results of our newly improved method
             #cv2.imshow("Robust", roi_eye)
@@ -519,11 +527,11 @@ if number_of_good_min_rect > 1:
             #lap = np.uint8(np.absolute(lap))
             #cv2.imshow("Laplacian", lap)
             
-            time.sleep(0.1)
+            #time.sleep(0.1)
             #print "eye located"
 
         # show the tracked eyes
-        cv2.imshow("Eye Tracking", frame)
+        #cv2.imshow("Eye Tracking", frame)
         #rawCapture.truncate(0)
         end = time.time()
         elapsed_time = end - start
@@ -532,6 +540,7 @@ if number_of_good_min_rect > 1:
         
         # todo
         # find where you still looking (right, left, center)
+
         
         
         #quality test
@@ -557,6 +566,24 @@ else:
     text_to_print = "not enought min_rect", number_of_good_min_rect
     print text_to_print
     SendToArduino(text_to_print)
+
+
+#print performance_test_eyes
+print "total_frame_number"
+print total_frame_number
+print "len(performance_test_eyes)"
+valore = float(len(performance_test_eyes))
+print valore
+print "% of recognition"
+print  float(float( 100.0 / total_frame_number) * valore)
+aa = 0.0
+for a,b,c,d,e in performance_test_eyes:
+    aa += a
+print float(aa /len(performance_test_eyes))
+#print "consecutive_fail"
+#print consecutive_fail
+print "max(consecutive_fail)"
+print max(consecutive_fail)
 
 if Arduino_is_present:
     ser.close
