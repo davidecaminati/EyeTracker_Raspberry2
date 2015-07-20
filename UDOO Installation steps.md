@@ -11,5 +11,5 @@ when the system has booted, change use the tools "Udoo configuration" on the des
 to change keyboard layout, timezone, password, expand the filesystem
 
 ### Start the installation script 
-wget -O https://github.com/davidecaminati/EyeTracker_Raspberry2/blob/master/install_eyetracking.sh
+wget  https://raw.githubusercontent.com/davidecaminati/EyeTracker_Raspberry2/master/install_eyetracking.sh
 sudo sh ./install_eyetracking.sh
