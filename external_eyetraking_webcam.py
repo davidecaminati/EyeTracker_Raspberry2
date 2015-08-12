@@ -55,7 +55,7 @@ import socket
 
 # --- the code start here ---
 
-Debug = False
+Debug = True
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -72,20 +72,28 @@ usa_ottimizzazione_statica = (args["static_optimization"] == "True")
 eye_to_track = args["eye"] 
 
 Arduino_is_present = True
+Motor_is_present = True
 # Serial comunication
-serPort = "/dev/ttyACM2"
+serPort = "/dev/ttyACM0"
+serPort2 = "/dev/ttyACM1"
+
 baudRate = 9600
 try:
     ser = serial.Serial(serPort, baudRate)
 except:
     Arduino_is_present = False
+    
+try:
+    ser2 = serial.Serial(serPort2, baudRate)
+except:
+    Motor_is_present = False
 
 time.sleep(2)
 
 print "Serial port " + serPort + " opened  Baudrate " + str(baudRate)
 
 #set as default video source as webcam (suppose to use Raspberry)
-video_src = 0 
+video_src = 3
 
 # check if you sill using an UDOO Board
 def findCamera():
@@ -150,6 +158,12 @@ def SendToArduino(tts):
     if Arduino_is_present:
         ser.write(str(tts))
         ser.write('\n') 
+    if Motor_is_present:
+        ser2.write(str(tts))
+        ser2.write('\n') 
+    
+    
+    
     
 # set the resolution for this fase
 w,h = resolutions[6] # '640.0', '480.0'
@@ -374,16 +388,17 @@ best_min_rect = best_minrect_array.index(number_of_good_min_rect)
 SendToArduino("fase 2 ended")
 # release resource 
 best_minrect_array = []
-time_for_gesture = 300 # number of frames to check for the gesture
+time_for_gesture = 4 # number of frames to check for the gesture
 gestureArray = ["C"] * time_for_gesture
 
 def GestureDetect(gnd):
     
-    #green = ["C","L","C","R","C"]
-    green = ["C","R","C","L","C","L","C","R","C","L"]
+    green = ["C","L","C","R","C"]
+    red = ["L","C","L","C"]
+    #green = ["C","L","C","L"]
     
-    red = ["C","R","C","L","C"]
-    left = ["C","L","C","L","C","L","C"]
+    #red = ["C","R","C","L","C"]
+    left = ["C","L","C","L"]
     right = ["C","R","C","R","C","R","C"]
     
     #occhi = ["C","R","C","L","C","L","C","R","C","L"]
@@ -497,23 +512,31 @@ if number_of_good_min_rect > 1:
             eye_information = []*3
             if x <= (w/5)*2: # Left
                 colore = (0,0,255)
-                #print "L"
+                print "L"
                 performance_test_eyes.append([elapsed_time,"L",h,w,total_frame_number])
                 actual_gesture = GestureDetect(GestureEngine("L"))
             elif x <= (w/5)*3: # Center
                 colore = (255,255,255)
-                #print "C"
+                print "C"
                 
                 performance_test_eyes.append([elapsed_time,"C",h,w,total_frame_number])
                 actual_gesture =  GestureDetect(GestureEngine("C"))
             else: # Right
                 colore = (255,0,0)
-                #print "R"
+                print "R"
                 performance_test_eyes.append([elapsed_time,"R",h,w,total_frame_number])
                 actual_gesture =  GestureDetect(GestureEngine("R"))
             #print actual_gesture
             if actual_gesture == 1:
                 SendToArduino("--1")
+            if actual_gesture == 2:
+                SendToArduino("--2")
+            if actual_gesture == 3:
+                SendToArduino("--L")
+            if actual_gesture == 4:
+                SendToArduino("--R")
+            
+            
             #cv2.circle(image2, minLoc, 5, colore, 2)
             #cv2.imshow("image2", image2)
             
